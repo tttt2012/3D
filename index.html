@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>3D Scan Gallery</title>
+  <title>3D & Photo Gallery</title>
   <!-- Load Google's 3D Model Viewer -->
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
   <style>
@@ -22,25 +22,37 @@
       display: flex;
       flex: 1;
       overflow: hidden;
-      flex-direction: column-reverse; /* Put list at bottom on mobile */
+      flex-direction: column-reverse; /* List at bottom on mobile */
     }
 
-    /* 3D Viewport */
+    /* Display Area */
     .viewer-box {
       flex: 1;
       position: relative;
       background-color: #1e1e1e;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     model-viewer {
       width: 100%;
       height: 100%;
+      display: none; /* Controlled by JS */
+    }
+
+    /* 2D Image Display */
+    #image-viewer {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      display: none; /* Controlled by JS */
     }
 
     /* Sidebar / Gallery List */
     .gallery-sidebar {
       width: 100%;
-      max-height: 180px;
+      max-height: 200px;
       overflow-y: auto;
       background-color: #181818;
       border-top: 1px solid #2a2a2a;
@@ -54,12 +66,16 @@
     .card {
       background-color: #262626;
       border-radius: 8px;
-      padding: 12px;
+      padding: 10px;
       cursor: pointer;
       text-align: center;
       transition: background-color 0.2s, border-color 0.2s;
       border: 2px solid transparent;
       user-select: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
     }
 
     .card:hover { background-color: #333333; }
@@ -72,7 +88,18 @@
       word-break: break-word;
     }
 
-    /* Desktop Layout Adjustments */
+    .badge {
+      font-size: 0.65rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      font-weight: bold;
+    }
+
+    .badge-3d { background-color: #2563eb; color: #fff; }
+    .badge-img { background-color: #059669; color: #fff; }
+
+    /* Desktop Layout */
     @media (min-width: 768px) {
       .container { flex-direction: row; }
       .gallery-sidebar {
@@ -92,51 +119,74 @@
     <!-- Sidebar / Selection Menu -->
     <div class="gallery-sidebar" id="gallery"></div>
 
-    <!-- Interactive 3D Display -->
+    <!-- Interactive Viewport -->
     <div class="viewer-box">
+      <!-- 3D Model Display -->
       <model-viewer 
-        id="main-viewer"
+        id="model-viewer"
         src="" 
-        alt="Interactive 3D Model" 
+        alt="3D Model" 
         camera-controls 
         auto-rotate 
         shadow-intensity="1" 
         ar>
       </model-viewer>
+
+      <!-- 2D Image Display -->
+      <img id="image-viewer" src="" alt="Photo" />
     </div>
   </div>
 
   <script>
-    // 1. LIST YOUR 3D MODELS HERE
-    // Add your filenames and custom display titles in this list:
-    const scans = [
-      { title: "zako", file: "zako.glb" },
-      { title: "zako2", file: "zako2.glb" },
-      { title: "mountani_bike", file: "mountainbike.glb" },
-      { title: "Dog", file: "Dog.glb" }
+    // 1. LIST YOUR MEDIA HERE (3D Models & 2D Photos)
+    // Set type to "3d" for .glb files, or "image" for .jpg/.png
+    const mediaList = [
+      { title: "zako", file: "zako.glb", type: "3d" },
+      { title: "mountain_bike", file: "mountain_bike.png", type: "image" },
+      { title: "mountainbike", file: "mountainbike.glb", type: "3d" },
+      { title: "Dog", file: "Dog.glb", type: "3d" },
+      { title: "PNG Snapshot", file: "Dog.png", type: "image" }
     ];
 
     const galleryContainer = document.getElementById("gallery");
-    const viewer = document.getElementById("main-viewer");
+    const modelViewer = document.getElementById("model-viewer");
+    const imageViewer = document.getElementById("image-viewer");
 
-    // Load initial scan
-    if (scans.length > 0) {
-      viewer.src = scans[0].file;
+    // Function to render selected media
+    function displayMedia(item) {
+      if (item.type === "3d") {
+        imageViewer.style.display = "none";
+        modelViewer.src = item.file;
+        modelViewer.style.display = "block";
+      } else {
+        modelViewer.style.display = "none";
+        imageViewer.src = item.file;
+        imageViewer.style.display = "block";
+      }
     }
 
-    // Build the gallery list dynamically
-    scans.forEach((scan, index) => {
+    // Load initial item
+    if (mediaList.length > 0) {
+      displayMedia(mediaList[0]);
+    }
+
+    // Build the gallery cards
+    mediaList.forEach((item, index) => {
       const card = document.createElement("div");
       card.className = `card ${index === 0 ? 'active' : ''}`;
-      card.innerHTML = `<h4>${scan.title}</h4>`;
+      
+      const badgeClass = item.type === '3d' ? 'badge-3d' : 'badge-img';
+      const badgeText = item.type === '3d' ? '3D' : 'PHOTO';
+
+      card.innerHTML = `
+        <span class="badge ${badgeClass}">${badgeText}</span>
+        <h4>${item.title}</h4>
+      `;
 
       card.addEventListener("click", () => {
-        // Highlight active button
         document.querySelectorAll(".card").forEach(c => c.classList.remove("active"));
         card.classList.add("active");
-
-        // Swap 3D model
-        viewer.src = scan.file;
+        displayMedia(item);
       });
 
       galleryContainer.appendChild(card);
