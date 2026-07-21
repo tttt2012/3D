@@ -1,25 +1,31 @@
-html<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Interactive 3D Photo</title>
-    <!-- Import Google's 3D viewer element -->
+    <title>3D Photo Gallery Viewer</title>
     <script type="module" src="https://googleapis.com"></script>
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #1a1a1a; }
-        model-viewer { width: 100vw; height: 100vh; }
+        model-viewer { width: 100vw; height: 100vh; display: block; }
     </style>
 </head>
 <body>
 
-    <!-- This element embeds your 3D file seamlessly -->
-    <model-viewer src="zako.glb" 
-                  camera-controls 
-                  touch-action="pan-y" 
-                  auto-rotate 
-                  shadow-intensity="1">
-    </model-viewer>
+    <!-- The id="viewer" allows the script below to change the source dynamically -->
+    <model-viewer id="viewer" camera-controls touch-action="pan-y" auto-rotate shadow-intensity="1"></model-viewer>
+
+    <script>
+        // 1. Look at the URL address link
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        // 2. Find the file name after '?file=' (Default to 'zato.glb' if empty)
+        const fileName = urlParams.get('file') || 'zato.glb'; 
+        
+        // 3. Inject that file name into the 3D viewer automatically
+        document.getElementById('viewer').setAttribute('src', fileName);
+    </script>
 
 </body>
 </html>
+
