@@ -4,43 +4,39 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3D Photo Gallery</title>
-    <script type="module" src="https://ajax.googleapis.com"></script>
+    <!-- Use jsDelivr to completely bypass Google's CORS blocking rule -->
+    <script type="module" src="https://jsdelivr.net"></script>
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; font-family: sans-serif; background-color: #1a1a1a; color: white; display: flex; flex-direction: column; }
-        
-        /* The 3D viewer container takes up the top part of the screen */
-        model-viewer { width: 100%; height: 70vh; background-color: #111; }
-        
-        /* The gallery container for your .png files at the bottom */
-        .gallery { height: 30vh; display: flex; justify-content: center; align-items: center; gap: 20px; background-color: #222; padding: 10px; }
-        
-        /* Styling for your clickable .png images */
-        .thumbnail { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 2px solid #555; cursor: pointer; transition: 0.2s; }
-        .thumbnail:hover { border-color: #00ffcc; transform: scale(1.05); }
+        #viewer-container { width: 100%; height: 70vh; background-color: #111; position: relative; }
+        model-viewer { width: 100%; height: 100%; display: block; }
+        .gallery { height: 30vh; display: flex; justify-content: center; align-items: center; gap: 20px; background-color: #222; padding: 10px; box-sizing: border-box; }
+        .thumb-box { text-align: center; }
+        .thumbnail { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 2px solid #555; cursor: pointer; background-color: #333; display: block; }
+        .thumbnail:hover { border-color: #00ffcc; }
     </style>
 </head>
 <body>
 
-    <!-- Main 3D Viewer Element -->
-    <model-viewer id="mainViewer" src="zato.glb" camera-controls touch-action="pan-y" auto-rotate shadow-intensity="1"></model-viewer>
+    <div id="viewer-container">
+        <!-- Make sure src matches your file capitalization exactly -->
+        <model-viewer id="mainViewer" src="zato.glb" camera-controls touch-action="pan-y" auto-rotate shadow-intensity="1"></model-viewer>
+    </div>
 
-    <!-- Gallery section where your .png files are explicitly loaded -->
     <div class="gallery">
-        <div>
-            <!-- Click this .png to load zato.glb -->
-            <img class="thumbnail" src="zato.png" onclick="switchModel('zato.glb')" alt="Zato Preview">
-            <p style="text-align:center; margin:5px 0 0 0; font-size:12px;">Zato</p>
+        <div class="thumb-box">
+            <img class="thumbnail" src="zato.png" onclick="switchModel('zato.glb')" alt="[Zato PNG]">
+            <span style="font-size:12px; display:block; margin-top:5px;">Zato Model</span>
         </div>
-        <div>
-            <!-- Click this .png to load zako.glb -->
-            <img class="thumbnail" src="zako.png" onclick="switchModel('zako.glb')" alt="Zako Preview">
-            <p style="text-align:center; margin:5px 0 0 0; font-size:12px;">Zako</p>
+        <div class="thumb-box">
+            <img class="thumbnail" src="zako.png" onclick="switchModel('zako.glb')" alt="[Zako PNG]">
+            <span style="font-size:12px; display:block; margin-top:5px;">Zako Model</span>
         </div>
     </div>
 
     <script>
-        // This function changes the 3D model when a user clicks a .png thumbnail
         function switchModel(fileName) {
+            console.log("Switching model to: " + fileName);
             document.getElementById('mainViewer').setAttribute('src', fileName);
         }
     </script>
