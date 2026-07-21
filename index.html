@@ -3,42 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Photo Gallery</title>
-    <!-- Use jsDelivr to completely bypass Google's CORS blocking rule -->
+    <title>3D Photo Gallery Viewer</title>
+    <!-- Standard universal delivery link to bypass CORS issues -->
     <script type="module" src="https://jsdelivr.net"></script>
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; font-family: sans-serif; background-color: #1a1a1a; color: white; display: flex; flex-direction: column; }
-        #viewer-container { width: 100%; height: 70vh; background-color: #111; position: relative; }
-        model-viewer { width: 100%; height: 100%; display: block; }
-        .gallery { height: 30vh; display: flex; justify-content: center; align-items: center; gap: 20px; background-color: #222; padding: 10px; box-sizing: border-box; }
-        .thumb-box { text-align: center; }
-        .thumbnail { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 2px solid #555; cursor: pointer; background-color: #333; display: block; }
-        .thumbnail:hover { border-color: #00ffcc; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #1a1a1a; }
+        model-viewer { width: 100vw; height: 100vh; display: block; }
     </style>
 </head>
 <body>
 
-    <div id="viewer-container">
-        <!-- Make sure src matches your file capitalization exactly -->
-        <model-viewer id="mainViewer" src="zato.glb" camera-controls touch-action="pan-y" auto-rotate shadow-intensity="1"></model-viewer>
-    </div>
-
-    <div class="gallery">
-        <div class="thumb-box">
-            <img class="thumbnail" src="zato.png" onclick="switchModel('zato.glb')" alt="[Zato PNG]">
-            <span style="font-size:12px; display:block; margin-top:5px;">Zato Model</span>
-        </div>
-        <div class="thumb-box">
-            <img class="thumbnail" src="zako.png" onclick="switchModel('zako.glb')" alt="[Zako PNG]">
-            <span style="font-size:12px; display:block; margin-top:5px;">Zako Model</span>
-        </div>
-    </div>
+    <!-- The id="viewer" allows the script below to change the source dynamically -->
+    <model-viewer id="viewer" camera-controls touch-action="pan-y" auto-rotate shadow-intensity="1"></model-viewer>
 
     <script>
-        function switchModel(fileName) {
-            console.log("Switching model to: " + fileName);
-            document.getElementById('mainViewer').setAttribute('src', fileName);
-        }
+        // 1. Look at the URL address link
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        // 2. Find the file name after '?file=' (Default to 'zato.glb' if empty)
+        const fileName = urlParams.get('file') || 'zato.glb'; 
+        
+        // 3. Inject that file name into the 3D viewer automatically
+        document.getElementById('viewer').setAttribute('src', fileName);
     </script>
 
 </body>
