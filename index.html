@@ -3,28 +3,145 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>3D Photo Viewer</title>
-  <!-- Load Google's 3D Model Viewer script -->
+  <title>3D Scan Gallery</title>
+  <!-- Load Google's 3D Model Viewer -->
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
   <style>
-    body { margin: 0; padding: 0; background-color: #121212; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { 
+      display: flex; 
+      flex-direction: column; 
+      height: 100vh; 
+      background-color: #121212; 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #ffffff;
+    }
+
+    /* Main Container */
+    .container {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      flex-direction: column-reverse; /* Put list at bottom on mobile */
+    }
+
+    /* 3D Viewport */
+    .viewer-box {
+      flex: 1;
+      position: relative;
+      background-color: #1e1e1e;
+    }
+
     model-viewer {
-      width: 100vw;
-      height: 100vh;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Sidebar / Gallery List */
+    .gallery-sidebar {
+      width: 100%;
+      max-height: 180px;
+      overflow-y: auto;
+      background-color: #181818;
+      border-top: 1px solid #2a2a2a;
+      padding: 12px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 10px;
+    }
+
+    /* Item Card */
+    .card {
+      background-color: #262626;
+      border-radius: 8px;
+      padding: 12px;
+      cursor: pointer;
+      text-align: center;
+      transition: background-color 0.2s, border-color 0.2s;
+      border: 2px solid transparent;
+      user-select: none;
+    }
+
+    .card:hover { background-color: #333333; }
+    .card.active { border-color: #3b82f6; background-color: #1e293b; }
+
+    .card h4 {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: #e2e8f0;
+      word-break: break-word;
+    }
+
+    /* Desktop Layout Adjustments */
+    @media (min-width: 768px) {
+      .container { flex-direction: row; }
+      .gallery-sidebar {
+        width: 280px;
+        max-height: 100%;
+        border-top: none;
+        border-right: 1px solid #2a2a2a;
+        display: flex;
+        flex-direction: column;
+      }
     }
   </style>
 </head>
 <body>
 
-  <!-- Replace 'my-scan.glb' with the exact filename of your uploaded 3D model -->
-  <model-viewer 
-    src="zako.glb" 
-    alt="3D Scanned Photo" 
-    camera-controls 
-    auto-rotate 
-    shadow-intensity="1" 
-    ar>
-  </model-viewer>
+  <div class="container">
+    <!-- Sidebar / Selection Menu -->
+    <div class="gallery-sidebar" id="gallery"></div>
+
+    <!-- Interactive 3D Display -->
+    <div class="viewer-box">
+      <model-viewer 
+        id="main-viewer"
+        src="" 
+        alt="Interactive 3D Model" 
+        camera-controls 
+        auto-rotate 
+        shadow-intensity="1" 
+        ar>
+      </model-viewer>
+    </div>
+  </div>
+
+  <script>
+    // 1. LIST YOUR 3D MODELS HERE
+    // Add your filenames and custom display titles in this list:
+    const scans = [
+      { title: "zako", file: "zako.glb" },
+      { title: "zako2", file: "zako2.glb" },
+      { title: "mountani_bike", file: "mountainbike.glb" },
+      { title: "Dog", file: "Dog.glb" }
+    ];
+
+    const galleryContainer = document.getElementById("gallery");
+    const viewer = document.getElementById("main-viewer");
+
+    // Load initial scan
+    if (scans.length > 0) {
+      viewer.src = scans[0].file;
+    }
+
+    // Build the gallery list dynamically
+    scans.forEach((scan, index) => {
+      const card = document.createElement("div");
+      card.className = `card ${index === 0 ? 'active' : ''}`;
+      card.innerHTML = `<h4>${scan.title}</h4>`;
+
+      card.addEventListener("click", () => {
+        // Highlight active button
+        document.querySelectorAll(".card").forEach(c => c.classList.remove("active"));
+        card.classList.add("active");
+
+        // Swap 3D model
+        viewer.src = scan.file;
+      });
+
+      galleryContainer.appendChild(card);
+    });
+  </script>
 
 </body>
 </html>
