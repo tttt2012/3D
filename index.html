@@ -1,31 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Photo Gallery Viewer</title>
-    <!-- Standard universal delivery link to bypass CORS issues -->
-    <script type="module" src="https://unpkg.com"></script>
-    <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #1a1a1a; }
-        model-viewer { width: 100vw; height: 100vh; display: block; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Photo Viewer</title>
+  <!-- Load Google's 3D Model Viewer script -->
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
+  <style>
+    body { margin: 0; padding: 0; background-color: #121212; }
+    model-viewer {
+      width: 100vw;
+      height: 100vh;
+    }
+  </style>
 </head>
 <body>
 
-    <!-- The id="viewer" allows the script below to change the source dynamically -->
-    <model-viewer id="viewer" camera-controls touch-action="pan-y" auto-rotate shadow-intensity="1"></model-viewer>
-
-    <script>
-        // 1. Look at the URL address link
-        const urlParams = new URLSearchParams(window.location.search);
-        
-        // 2. Find the file name after '?file=' (Default to 'zato.glb' if empty)
-        const fileName = urlParams.get('file') || 'zako.glb'; 
-        
-        // 3. Inject that file name into the 3D viewer automatically
-        document.getElementById('viewer').setAttribute('src', fileName);
-    </script>
+  <!-- Replace 'my-scan.glb' with the exact filename of your uploaded 3D model -->
+  <model-viewer 
+    src="zako.glb" 
+    alt="3D Scanned Photo" 
+    camera-controls 
+    auto-rotate 
+    shadow-intensity="1" 
+    ar>
+  </model-viewer>
 
 </body>
 </html>
