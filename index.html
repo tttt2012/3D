@@ -20,7 +20,7 @@
         const urlParams = new URLSearchParams(window.location.search);
         
         // 2. Find the file name after '?file=' (Default to 'zato.glb' if empty)
-        const fileName = urlParams.get('file') || 'zato.glb'; 
+        const fileName = urlParams.get('file') || 'zako.glb'; 
         
         // 3. Inject that file name into the 3D viewer automatically
         document.getElementById('viewer').setAttribute('src', fileName);
