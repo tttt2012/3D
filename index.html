@@ -171,95 +171,104 @@
 
   <script>
     // Automatically detect GitHub username & repository name from GitHub Pages URL
-    const pathSegments = window.location.pathname.split('/').filter(Boolean);
-    const repoName = pathSegments[0] || 'YOUR_REPO_NAME';
-    const userName = window.location.hostname.split('.')[0] || 'YOUR_USERNAME';
+    // Hardcoded repository details for tttt2012.github.io/3D
+const userName = 'tttt2012';
+const repoName = '3D';
 
-    const folderPath = '3D'; // Target folder name inside repo
-    const apiUrl = `https://api.github.com/repos/${userName}/${repoName}/contents/${folderPath}`;
+// Target the root of the repository where index.html and all files sit
+const apiUrl = `https://api.github.com/repos/${userName}/${repoName}/contents/`;
 
-    const galleryContainer = document.getElementById("gallery");
-    const statusMsg = document.getElementById("status");
-    const modelViewer = document.getElementById("model-viewer");
-    const imageViewer = document.getElementById("image-viewer");
+const galleryContainer = document.getElementById("gallery");
+const statusMsg = document.getElementById("status");
+const modelViewer = document.getElementById("model-viewer");
+const imageViewer = document.getElementById("image-viewer");
 
-    // Display selected item in viewport
-    function displayMedia(item) {
-      if (item.type === "3d") {
-        imageViewer.style.display = "none";
-        modelViewer.src = item.file;
-        modelViewer.style.display = "block";
-      } else {
-        modelViewer.style.display = "none";
-        imageViewer.src = item.file;
-        imageViewer.style.display = "block";
+// Display selected item in viewport
+function displayMedia(item) {
+  if (item.type === "3d") {
+    imageViewer.style.display = "none";
+    modelViewer.src = item.file;
+    modelViewer.style.display = "block";
+  } else {
+    modelViewer.style.display = "none";
+    imageViewer.src = item.file;
+    imageViewer.style.display = "block";
+  }
+}
+
+// Convert "my_carina_scan.glb" -> "my carina scan"
+function cleanTitle(filename) {
+  const nameWithoutExt = filename.substring(0, filename.lastIndexOf('.'));
+  return nameWithoutExt.replace(/[-_]/g, ' ');
+}
+
+// Render cards into the left sidebar
+function renderCards(mediaList) {
+  galleryContainer.innerHTML = "";
+  statusMsg.style.display = "none";
+  
+  // Auto-display the first file in the list
+  displayMedia(mediaList[0]);
+
+  mediaList.forEach((item, index) => {
+    const card = document.createElement("div");
+    card.className = `card ${index === 0 ? 'active' : ''}`;
+    
+    const badgeClass = item.type === '3d' ? 'badge-3d' : 'badge-img';
+    const badgeText = item.type === '3d' ? '3D' : 'PHOTO';
+
+    card.innerHTML = `
+      <h4>${item.title}</h4>
+      <span class="badge ${badgeClass}">${badgeText}</span>
+    `;
+
+    card.addEventListener("click", () => {
+      document.querySelectorAll(".card").forEach(c => c.classList.remove("active"));
+      card.classList.add("active");
+      displayMedia(item);
+    });
+
+    galleryContainer.appendChild(card);
+  });
+}
+
+// Fetch files dynamically from GitHub API
+async function loadGallery() {
+  try {
+    const response = await fetch(apiUrl);
+    
+    if (!response.ok) {
+      throw new Error(`GitHub API Error: ${response.status}. Ensure the repo '3D' is Public.`);
+    }
+
+    const files = await response.json();
+    const mediaList = [];
+
+    files.forEach(file => {
+      const ext = file.name.split('.').pop().toLowerCase();
+      
+      // Collect .glb models and 2D images (ignoring index.html or other code files)
+      if (ext === 'glb') {
+        mediaList.push({ title: cleanTitle(file.name), file: file.name, type: '3d' });
+      } else if (['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext)) {
+        mediaList.push({ title: cleanTitle(file.name), file: file.name, type: 'image' });
       }
+    });
+
+    if (mediaList.length === 0) {
+      statusMsg.textContent = "No .glb or image files found in this repository.";
+      return;
     }
 
-    // Format filename into clean title (e.g., "carina_nebula.glb" -> "carina nebula")
-    function cleanTitle(filename) {
-      const nameWithoutExt = filename.substring(0, filename.lastIndexOf('.'));
-      return nameWithoutExt.replace(/[-_]/g, ' ');
-    }
+    renderCards(mediaList);
 
-    // Fetch repository contents dynamically
-    async function loadGallery() {
-      try {
-        const response = await fetch(apiUrl);
-        if (!response.ok) {
-          throw new Error(`Folder '${folderPath}' not found or GitHub API limit reached.`);
-        }
+  } catch (err) {
+    statusMsg.textContent = err.message;
+    console.error(err);
+  }
+}
 
-        const files = await response.json();
-        const mediaList = [];
-
-        // Filter for supported files
-        files.forEach(file => {
-          const ext = file.name.split('.').pop().toLowerCase();
-          if (ext === 'glb') {
-            mediaList.push({ title: cleanTitle(file.name), file: file.download_url, type: '3d' });
-          } else if (['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext)) {
-            mediaList.push({ title: cleanTitle(file.name), file: file.download_url, type: 'image' });
-          }
-        });
-
-        if (mediaList.length === 0) {
-          statusMsg.textContent = `No .glb or image files found in ${folderPath}/ folder.`;
-          return;
-        }
-
-        statusMsg.style.display = "none"; // Hide loading text
-        displayMedia(mediaList[0]); // Load first item
-
-        // Render card list
-        mediaList.forEach((item, index) => {
-          const card = document.createElement("div");
-          card.className = `card ${index === 0 ? 'active' : ''}`;
-          
-          const badgeClass = item.type === '3d' ? 'badge-3d' : 'badge-img';
-          const badgeText = item.type === '3d' ? '3D' : 'PHOTO';
-
-          card.innerHTML = `
-            <h4>${item.title}</h4>
-            <span class="badge ${badgeClass}">${badgeText}</span>
-          `;
-
-          card.addEventListener("click", () => {
-            document.querySelectorAll(".card").forEach(c => c.classList.remove("active"));
-            card.classList.add("active");
-            displayMedia(item);
-          });
-
-          galleryContainer.appendChild(card);
-        });
-
-      } catch (err) {
-        statusMsg.textContent = `Error: ${err.message}`;
-        console.error(err);
-      }
-    }
-
-    loadGallery();
+loadGallery();
   </script>
 
 </body>
