@@ -4,8 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Toby's 3D gallery</title>
-  <!-- Load Google's 3D Model Viewer -->
+  
+  <!-- 1. Google 3D Model Viewer -->
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
+  
+  <!-- 2. Pannellum 360 Photo Viewer (Lightweight CDN, no installation needed) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css"/>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
+
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { 
@@ -17,15 +23,13 @@
       color: #ffffff;
     }
 
-    /* Main Container */
     .container {
       display: flex;
       flex: 1;
       overflow: hidden;
-      flex-direction: column-reverse; /* List at bottom on mobile */
+      flex-direction: column-reverse;
     }
 
-    /* Display Area */
     .viewer-box {
       flex: 1;
       position: relative;
@@ -35,13 +39,13 @@
       justify-content: center;
     }
 
-    model-viewer {
+    /* Element Viewports */
+    model-viewer, #panorama-viewer {
       width: 100%;
       height: 100%;
       display: none;
     }
 
-    /* 2D Image Display */
     #image-viewer {
       max-width: 100%;
       max-height: 100%;
@@ -49,7 +53,7 @@
       display: none;
     }
 
-    /* Sidebar Container */
+    /* Sidebar Styling */
     .gallery-sidebar {
       width: 100%;
       max-height: 240px;
@@ -62,22 +66,18 @@
       gap: 12px;
     }
 
-    /* Page Title */
     .gallery-title {
       font-size: 1.25rem;
       font-weight: 700;
       color: #3b82f6;
-      letter-spacing: -0.02em;
     }
 
-    /* Gallery Grid */
     .gallery-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
       gap: 10px;
     }
 
-    /* Item Card */
     .card {
       background-color: #262626;
       border-radius: 8px;
@@ -103,6 +103,7 @@
       word-break: break-word;
     }
 
+    /* Badges */
     .badge {
       font-size: 0.65rem;
       padding: 2px 6px;
@@ -112,15 +113,11 @@
     }
 
     .badge-3d { background-color: #2563eb; color: #fff; }
+    .badge-pano { background-color: #d97706; color: #fff; }
     .badge-img { background-color: #059669; color: #fff; }
 
-    /* Loading Status */
-    .status-msg {
-      font-size: 0.9rem;
-      color: #a1a1aa;
-    }
+    .status-msg { font-size: 0.9rem; color: #a1a1aa; }
 
-    /* Desktop Layout */
     @media (min-width: 768px) {
       .container { flex-direction: row; }
       .gallery-sidebar {
@@ -129,147 +126,150 @@
         border-top: none;
         border-right: 1px solid #2a2a2a;
       }
-      .gallery-grid {
-        display: flex;
-        flex-direction: column;
-      }
-      .card {
-        flex-direction: row;
-        justify-content: space-between;
-        text-align: left;
-      }
+      .gallery-grid { display: flex; flex-direction: column; }
+      .card { flex-direction: row; justify-content: space-between; text-align: left; }
     }
   </style>
 </head>
 <body>
 
   <div class="container">
-    <!-- Sidebar / Selection Menu -->
+    <!-- Sidebar -->
     <div class="gallery-sidebar">
       <h1 class="gallery-title">Toby's 3D gallery</h1>
-      <div id="status" class="status-msg">Scanning 3D/ folder...</div>
+      <div id="status" class="status-msg">Scanning repository root...</div>
       <div class="gallery-grid" id="gallery"></div>
     </div>
 
-    <!-- Interactive Viewport -->
+    <!-- Viewport -->
     <div class="viewer-box">
-      <!-- 3D Model Display -->
-      <model-viewer 
-        id="model-viewer"
-        src="" 
-        alt="3D Model" 
-        camera-controls 
-        auto-rotate 
-        shadow-intensity="1" 
-        ar>
-      </model-viewer>
-
-      <!-- 2D Image Display -->
+      <model-viewer id="model-viewer" src="" alt="3D Model" camera-controls auto-rotate shadow-intensity="1" ar></model-viewer>
+      <div id="panorama-viewer"></div>
       <img id="image-viewer" src="" alt="Photo" />
     </div>
   </div>
 
-<script>
-    // Automatically detect GitHub username & repository name from GitHub Pages URL
-    // Hardcoded repository details for tttt2012.github.io/3D
-    // Hardcoded repository details for tttt2012.github.io/3D
-const userName = 'tttt2012';
-const repoName = '3D';
+  <script>
+    const userName = 'tttt2012';
+    const repoName = '3D';
+    const apiUrl = `https://api.github.com/repos/${userName}/${repoName}/contents/`;
 
-// Target the root of the repository where index.html and all files sit
-const apiUrl = `https://api.github.com/repos/${userName}/${repoName}/contents/`;
+    const galleryContainer = document.getElementById("gallery");
+    const statusMsg = document.getElementById("status");
+    const modelViewer = document.getElementById("model-viewer");
+    const imageViewer = document.getElementById("image-viewer");
+    const panoramaViewer = document.getElementById("panorama-viewer");
 
-const galleryContainer = document.getElementById("gallery");
-const statusMsg = document.getElementById("status");
-const modelViewer = document.getElementById("model-viewer");
-const imageViewer = document.getElementById("image-viewer");
+    let pViewerInstance = null; // Store active 360 panorama instance
 
-// Display selected item in viewport
-function displayMedia(item) {
-  if (item.type === "3d") {
-    imageViewer.style.display = "none";
-    modelViewer.src = item.file;
-    modelViewer.style.display = "block";
-  } else {
-    modelViewer.style.display = "none";
-    imageViewer.src = item.file;
-    imageViewer.style.display = "block";
-  }
-}
-
-// Convert "my_carina_scan.glb" -> "my carina scan"
-function cleanTitle(filename) {
-  const nameWithoutExt = filename.substring(0, filename.lastIndexOf('.'));
-  return nameWithoutExt.replace(/[-_]/g, ' ');
-}
-
-// Render cards into the left sidebar
-function renderCards(mediaList) {
-  galleryContainer.innerHTML = "";
-  statusMsg.style.display = "none";
-  
-  // Auto-display the first file in the list
-  displayMedia(mediaList[0]);
-
-  mediaList.forEach((item, index) => {
-    const card = document.createElement("div");
-    card.className = `card ${index === 0 ? 'active' : ''}`;
-    
-    const badgeClass = item.type === '3d' ? 'badge-3d' : 'badge-img';
-    const badgeText = item.type === '3d' ? '3D' : 'PHOTO';
-
-    card.innerHTML = `
-      <h4>${item.title}</h4>
-      <span class="badge ${badgeClass}">${badgeText}</span>
-    `;
-
-    card.addEventListener("click", () => {
-      document.querySelectorAll(".card").forEach(c => c.classList.remove("active"));
-      card.classList.add("active");
-      displayMedia(item);
-    });
-
-    galleryContainer.appendChild(card);
-  });
-}
-
-// Fetch files dynamically from GitHub API
-async function loadGallery() {
-  try {
-    const response = await fetch(apiUrl);
-    
-    if (!response.ok) {
-      throw new Error(`GitHub API Error: ${response.status}. Ensure the repo '3D' is Public.`);
-    }
-
-    const files = await response.json();
-    const mediaList = [];
-
-    files.forEach(file => {
-      const ext = file.name.split('.').pop().toLowerCase();
+    function hideAllViewers() {
+      modelViewer.style.display = "none";
+      imageViewer.style.display = "none";
+      panoramaViewer.style.display = "none";
       
-      // Collect .glb models and 2D images (ignoring index.html or other code files)
-      if (ext === 'glb') {
-        mediaList.push({ title: cleanTitle(file.name), file: file.name, type: '3d' });
-      } else if (['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext)) {
-        mediaList.push({ title: cleanTitle(file.name), file: file.name, type: 'image' });
+      // Clean up previous 360 viewer instance to free memory
+      if (pViewerInstance) {
+        pViewerInstance.destroy();
+        pViewerInstance = null;
       }
-    });
-
-    if (mediaList.length === 0) {
-      statusMsg.textContent = "No .glb or image files found in this repository.";
-      return;
     }
 
-    renderCards(mediaList);
+    function displayMedia(item) {
+      hideAllViewers();
 
-  } catch (err) {
-    statusMsg.textContent = err.message;
-    console.error(err);
-  }
-}
+      if (item.type === "3d") {
+        modelViewer.src = item.file;
+        modelViewer.style.display = "block";
+      } else if (item.type === "pano") {
+        panoramaViewer.style.display = "block";
+        pViewerInstance = pannellum.viewer('panorama-viewer', {
+          "type": "equirectangular",
+          "panorama": item.file,
+          "autoLoad": true,
+          "autoRotate": -2,
+          "compass": true
+        });
+      } else {
+        imageViewer.src = item.file;
+        imageViewer.style.display = "block";
+      }
+    }
 
-loadGallery();
+    function cleanTitle(filename) {
+      const nameWithoutExt = filename.substring(0, filename.lastIndexOf('.'));
+      return nameWithoutExt.replace(/[-_]/g, ' ');
+    }
+
+    function renderCards(mediaList) {
+      galleryContainer.innerHTML = "";
+      statusMsg.style.display = "none";
+      displayMedia(mediaList[0]);
+
+      mediaList.forEach((item, index) => {
+        const card = document.createElement("div");
+        card.className = `card ${index === 0 ? 'active' : ''}`;
+        
+        let badgeClass = 'badge-img';
+        let badgeText = 'PHOTO';
+
+        if (item.type === '3d') { badgeClass = 'badge-3d'; badgeText = '3D'; }
+        if (item.type === 'pano') { badgeClass = 'badge-pano'; badgeText = '360°'; }
+
+        card.innerHTML = `
+          <h4>${item.title}</h4>
+          <span class="badge ${badgeClass}">${badgeText}</span>
+        `;
+
+        card.addEventListener("click", () => {
+          document.querySelectorAll(".card").forEach(c => c.classList.remove("active"));
+          card.classList.add("active");
+          displayMedia(item);
+        });
+
+        galleryContainer.appendChild(card);
+      });
+    }
+
+    async function loadGallery() {
+      try {
+        const response = await fetch(apiUrl);
+        if (!response.ok) throw new Error(`GitHub API Error: ${response.status}`);
+
+        const files = await response.json();
+        const mediaList = [];
+
+        files.forEach(file => {
+          const ext = file.name.split('.').pop().toLowerCase();
+          const name = file.name.toLowerCase();
+
+          if (ext === 'glb') {
+            mediaList.push({ title: cleanTitle(file.name), file: file.name, type: '3d' });
+          } 
+          // Detect 360 photo if filename contains "360", "pano", "p360", or "dji"
+          else if (['jpg', 'jpeg', 'png', 'webp'].includes(ext)) {
+            const isPano = name.includes('360') || name.includes('pano') || name.includes('p360') || name.includes('dji');
+            mediaList.push({ 
+              title: cleanTitle(file.name), 
+              file: file.name, 
+              type: isPano ? 'pano' : 'image' 
+            });
+          }
+        });
+
+        if (mediaList.length === 0) {
+          statusMsg.textContent = "No supported files found.";
+          return;
+        }
+
+        renderCards(mediaList);
+
+      } catch (err) {
+        statusMsg.textContent = err.message;
+        console.error(err);
+      }
+    }
+
+    loadGallery();
   </script>
 
 </body>
