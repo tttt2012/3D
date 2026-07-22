@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>3D & Photo Gallery</title>
+  <title>Toby's 3D gallery</title>
   <!-- Load Google's 3D Model Viewer -->
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
   <style>
@@ -38,7 +38,7 @@
     model-viewer {
       width: 100%;
       height: 100%;
-      display: none; /* Controlled by JS */
+      display: none;
     }
 
     /* 2D Image Display */
@@ -46,17 +46,32 @@
       max-width: 100%;
       max-height: 100%;
       object-fit: contain;
-      display: none; /* Controlled by JS */
+      display: none;
     }
 
-    /* Sidebar / Gallery List */
+    /* Sidebar Container */
     .gallery-sidebar {
       width: 100%;
-      max-height: 200px;
+      max-height: 240px;
       overflow-y: auto;
       background-color: #181818;
       border-top: 1px solid #2a2a2a;
-      padding: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* Page Title */
+    .gallery-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #3b82f6;
+      letter-spacing: -0.02em;
+    }
+
+    /* Gallery Grid */
+    .gallery-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
       gap: 10px;
@@ -75,7 +90,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 4px;
+      gap: 6px;
     }
 
     .card:hover { background-color: #333333; }
@@ -99,16 +114,29 @@
     .badge-3d { background-color: #2563eb; color: #fff; }
     .badge-img { background-color: #059669; color: #fff; }
 
+    /* Loading Status */
+    .status-msg {
+      font-size: 0.9rem;
+      color: #a1a1aa;
+    }
+
     /* Desktop Layout */
     @media (min-width: 768px) {
       .container { flex-direction: row; }
       .gallery-sidebar {
-        width: 280px;
+        width: 300px;
         max-height: 100%;
         border-top: none;
         border-right: 1px solid #2a2a2a;
+      }
+      .gallery-grid {
         display: flex;
         flex-direction: column;
+      }
+      .card {
+        flex-direction: row;
+        justify-content: space-between;
+        text-align: left;
       }
     }
   </style>
@@ -117,7 +145,11 @@
 
   <div class="container">
     <!-- Sidebar / Selection Menu -->
-    <div class="gallery-sidebar" id="gallery"></div>
+    <div class="gallery-sidebar">
+      <h1 class="gallery-title">Toby's 3D gallery</h1>
+      <div id="status" class="status-msg">Scanning 3D/ folder...</div>
+      <div class="gallery-grid" id="gallery"></div>
+    </div>
 
     <!-- Interactive Viewport -->
     <div class="viewer-box">
@@ -138,21 +170,20 @@
   </div>
 
   <script>
-    // 1. LIST YOUR MEDIA HERE (3D Models & 2D Photos)
-    // Set type to "3d" for .glb files, or "image" for .jpg/.png
-    const mediaList = [
-      { title: "zako", file: "zako.glb", type: "3d" },
-      { title: "mountain_bike", file: "mountain_bike.png", type: "image" },
-      { title: "mountainbike", file: "mountainbike.glb", type: "3d" },
-      { title: "Dog", file: "Dog.glb", type: "3d" },
-      { title: "PNG Snapshot", file: "Dog.png", type: "image" }
-    ];
+    // Automatically detect GitHub username & repository name from GitHub Pages URL
+    const pathSegments = window.location.pathname.split('/').filter(Boolean);
+    const repoName = pathSegments[0] || 'YOUR_REPO_NAME';
+    const userName = window.location.hostname.split('.')[0] || 'YOUR_USERNAME';
+
+    const folderPath = '3D'; // Target folder name inside repo
+    const apiUrl = `https://api.github.com/repos/${userName}/${repoName}/contents/${folderPath}`;
 
     const galleryContainer = document.getElementById("gallery");
+    const statusMsg = document.getElementById("status");
     const modelViewer = document.getElementById("model-viewer");
     const imageViewer = document.getElementById("image-viewer");
 
-    // Function to render selected media
+    // Display selected item in viewport
     function displayMedia(item) {
       if (item.type === "3d") {
         imageViewer.style.display = "none";
@@ -165,32 +196,70 @@
       }
     }
 
-    // Load initial item
-    if (mediaList.length > 0) {
-      displayMedia(mediaList[0]);
+    // Format filename into clean title (e.g., "carina_nebula.glb" -> "carina nebula")
+    function cleanTitle(filename) {
+      const nameWithoutExt = filename.substring(0, filename.lastIndexOf('.'));
+      return nameWithoutExt.replace(/[-_]/g, ' ');
     }
 
-    // Build the gallery cards
-    mediaList.forEach((item, index) => {
-      const card = document.createElement("div");
-      card.className = `card ${index === 0 ? 'active' : ''}`;
-      
-      const badgeClass = item.type === '3d' ? 'badge-3d' : 'badge-img';
-      const badgeText = item.type === '3d' ? '3D' : 'PHOTO';
+    // Fetch repository contents dynamically
+    async function loadGallery() {
+      try {
+        const response = await fetch(apiUrl);
+        if (!response.ok) {
+          throw new Error(`Folder '${folderPath}' not found or GitHub API limit reached.`);
+        }
 
-      card.innerHTML = `
-        <span class="badge ${badgeClass}">${badgeText}</span>
-        <h4>${item.title}</h4>
-      `;
+        const files = await response.json();
+        const mediaList = [];
 
-      card.addEventListener("click", () => {
-        document.querySelectorAll(".card").forEach(c => c.classList.remove("active"));
-        card.classList.add("active");
-        displayMedia(item);
-      });
+        // Filter for supported files
+        files.forEach(file => {
+          const ext = file.name.split('.').pop().toLowerCase();
+          if (ext === 'glb') {
+            mediaList.push({ title: cleanTitle(file.name), file: file.download_url, type: '3d' });
+          } else if (['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext)) {
+            mediaList.push({ title: cleanTitle(file.name), file: file.download_url, type: 'image' });
+          }
+        });
 
-      galleryContainer.appendChild(card);
-    });
+        if (mediaList.length === 0) {
+          statusMsg.textContent = `No .glb or image files found in ${folderPath}/ folder.`;
+          return;
+        }
+
+        statusMsg.style.display = "none"; // Hide loading text
+        displayMedia(mediaList[0]); // Load first item
+
+        // Render card list
+        mediaList.forEach((item, index) => {
+          const card = document.createElement("div");
+          card.className = `card ${index === 0 ? 'active' : ''}`;
+          
+          const badgeClass = item.type === '3d' ? 'badge-3d' : 'badge-img';
+          const badgeText = item.type === '3d' ? '3D' : 'PHOTO';
+
+          card.innerHTML = `
+            <h4>${item.title}</h4>
+            <span class="badge ${badgeClass}">${badgeText}</span>
+          `;
+
+          card.addEventListener("click", () => {
+            document.querySelectorAll(".card").forEach(c => c.classList.remove("active"));
+            card.classList.add("active");
+            displayMedia(item);
+          });
+
+          galleryContainer.appendChild(card);
+        });
+
+      } catch (err) {
+        statusMsg.textContent = `Error: ${err.message}`;
+        console.error(err);
+      }
+    }
+
+    loadGallery();
   </script>
 
 </body>
